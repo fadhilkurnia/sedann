@@ -1,2 +1,2 @@
-# sedann
-SeDANN: Scalable Disk Approximate Nearest Neighbors Search
+# SeDANN: Scalable Disk Approximate Nearest Neighbors Search
+
