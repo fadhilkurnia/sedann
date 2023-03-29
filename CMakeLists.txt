@@ -33,7 +33,8 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
-add_executable(sedann main.cpp)
+include_directories(./include)
+add_executable(sedann ./src/main.cpp)
 
 if(Boost_FOUND)
     target_link_libraries(sedann ${Boost_LIBRARIES})
