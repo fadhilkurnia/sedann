@@ -1,9 +1,9 @@
 import faiss
 import numpy as np
 
-dataset_source = './data/bigann_learn.bvecs'
+dataset_source = './data/sift10m_base.bvecs'
 centroids_save_loc = './data/centroids_10k_sift10m.npy'
-clusters_save_loc = './data/clusters_10k.npy'
+clusters_save_loc = './data/clusters_10k_sift10m.npy'
 
 def bvecs_read(fname):
     a = np.fromfile(fname, dtype=np.int32, count=1)
@@ -30,7 +30,7 @@ print(dataset[:10])
 
 print(">>> get the first 10M of vectors")
 D = 128
-N = 10000000
+N = 100000010
 C = 10000
 dataset = dataset[:N]
 
