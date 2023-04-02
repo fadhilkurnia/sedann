@@ -34,11 +34,19 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
 endif()
 
 include_directories(./include)
-add_executable(sedann ./src/multicore_main.cpp)
+add_executable(sedann ./src/main.cpp)
+add_executable(test_bplustree ./src/bplustree.cpp)
+add_executable(test_faiss_flat ./src/test_faiss_flat.cpp)
 
 if(Boost_FOUND)
     target_link_libraries(sedann ${Boost_LIBRARIES})
 endif()
+
+# include faiss library
+set(FAISS_ENABLE_GPU OFF)
+set(FAISS_ENABLE_PYTHON OFF)
+add_subdirectory(./external/faiss)
+target_link_libraries(test_faiss_flat faiss_avx2)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

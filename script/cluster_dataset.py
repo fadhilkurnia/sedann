@@ -1,6 +1,10 @@
 import faiss
 import numpy as np
 
+dataset_source = './data/bigann_learn.bvecs'
+centroids_save_loc = './data/centroids_10k_sift10m.npy'
+clusters_save_loc = './data/clusters_10k.npy'
+
 def bvecs_read(fname):
     a = np.fromfile(fname, dtype=np.int32, count=1)
     b = np.fromfile(fname, dtype=np.uint8)
@@ -17,7 +21,7 @@ def fvecs_read(fname):
 
 
 # reading bvecs file
-filename = "./data/bigann_learn.bvecs"
+filename = dataset_source
 print(">>> start reading bvecs file (", filename, ") ...")
 dataset = bvecs_read(filename).astype(np.float32)
 print(">>> dataset is loaded")
@@ -38,13 +42,13 @@ print("     ", kmeans.obj)
 print("     ", kmeans.centroids.shape)
 
 print(">>> saving the centroids")
-np.save("./data/centroids_10k_sift10m.npy", kmeans.centroids)
+np.save(centroids_save_loc, kmeans.centroids)
 
 print(">>> assigning all vectors to a cluster")
 dists, ids = kmeans.index.search(dataset, 1)
 print("     ", ids.shape)
 print(">>> saving the clusters")
-np.save("./data/clusters_10k.npy", ids)
+np.save(clusters_save_loc, ids)
 
 print("D:", kmeans.d)
 print("C:", kmeans.k)
