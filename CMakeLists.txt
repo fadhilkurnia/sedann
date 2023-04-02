@@ -34,7 +34,7 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
 endif()
 
 include_directories(./include)
-add_executable(sedann ./src/main.cpp)
+add_executable(sedann ./src/multicore_main.cpp)
 
 if(Boost_FOUND)
     target_link_libraries(sedann ${Boost_LIBRARIES})
