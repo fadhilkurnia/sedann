@@ -1,2 +1,4 @@
 *
 !.gitignore
+!centroids_10k_sift10m.fvecs
+!clusters_10k_sift10m.ivecs
