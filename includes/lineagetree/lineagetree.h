@@ -1,3 +1,5 @@
+#pragma once
+
 #include "node.h"
 #include "error/error.h"
 
@@ -8,24 +10,21 @@
 // [ ] buffer manager, store some data in disk and memory
 
 class LineageTree {
-    public:
+public:
     uint32_t dim;
     uint32_t depth;
     uint32_t num_nodes;
-    LineageClusterNode* root;
+    Node *root;
 
     // the main constructor
-    LineageTree(uint32_t dim = 128);
+    explicit LineageTree(uint32_t dim = 128);
 
-    // add_vector adds a single vector v into a cluster node
+    // insert_vector adds a single vector v into a cluster node
     // in this lineage tree. Adding a new vector can trigger
-    // cluster-node splitting and tree rebalancing, especially
+    // cluster-node splitting and tree balancing, especially
     // if the target cluster-node becomes full.
-    bool add_vector(float* v);
-    
-    // persist_index store the tree structure into a persistent disk
-    Error* persist_index();
+    bool insert_vector(float *v);
 
-    private:
-    void split_cluster();
+    // persist_index store the tree structure into a persistent disk
+    Error *persist_index();
 };

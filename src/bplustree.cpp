@@ -10,7 +10,7 @@
 using namespace std;
 
 class Node {
- public:
+  public:
 
   vector<float> keys;
   Node *parent;
