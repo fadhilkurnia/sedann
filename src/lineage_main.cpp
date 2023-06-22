@@ -17,11 +17,11 @@ int main(int argc, char **argv) {
 
     fread(&dimension, 1, sizeof(int32_t), data_file);
     fseek(data_file, 0, SEEK_SET);
-    struct stat st {};
+    struct stat st{};
     fstat(fileno(data_file), &st);
     size_t filesize = st.st_size;
 
-        if (filesize % ((dimension + 1) * 4) != 0) {
+    if (filesize % ((dimension + 1) * 4) != 0) {
         std::cerr << "invalid fvecs file, weird file size: " << data_filename
                   << std::endl;
         return -1;
@@ -45,12 +45,18 @@ int main(int argc, char **argv) {
 
 
     LineageTree t(dimension);
-    
-    for (int i = 0; i < 40; i++) {
+
+    for (int i = 0; i < 5000; i++) {
+        printf("== inserting vector number %d\n", i + 1);
         uint32_t offset = dimension * i;
-        float* v = vectors + offset;
-         t.insert_vector(v);
+        float *v = vectors + offset;
+        t.insert_vector(v);
     }
+
+    printf("=======================\n");
+    printf("tree depth: %d\n", t.get_depth());
+    printf("tree #node: %d\n", t.get_num_nodes());
+    printf("tree #leaf: %d\n", t.get_num_leaf_nodes());
 
     free(vectors);
     return 0;

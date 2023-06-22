@@ -97,14 +97,14 @@ bool Node::insert_vector(float *v) {
     }
 
     // insert vector v into a cluster whose centroid is the closest
-    printf("inserting a vector into cid=%d\n", cid);
+    printf("node: inserting a vector into cid=%d\n", cid);
     Cluster *c = this->clusters[cid];
     c->insert_vector(v);
     this->centroids[cid] = c->centroid;
 
     // split the cluster if it is almost full
     if (c->is_almost_full()) {
-        printf("current num of vectors: %lu\n", c->vectors.size());
+        printf("node: current num of vectors: %lu\n", c->vectors.size());
         std::vector<Cluster *> new_clusters = this->split_cluster(c);
         if (this->centroids.size() - 1 + new_clusters.size() <= this->max_centroid) {
             std::vector<float *> tmp_centoids;
@@ -231,4 +231,16 @@ std::vector<Cluster *> Node::split_cluster(Cluster *c) {
 
 bool Node::is_full() const {
     return this->centroids.size() == this->max_centroid;
+}
+
+void Node::print() {
+    printf("[node %p]\n", this);
+    printf(" is_leaf   : %d\n", this->is_leaf);
+    printf(" max_ctroid: %u\n", this->max_centroid);
+    printf(" #centroid : %ld\n", this->centroids.size());
+    printf(" #clusters : %ld\n", this->clusters.size());
+    printf(" #children : %ld\n", this->children.size());
+    printf(" parent    : %p\n", this->parent);
+    printf(" parent_id : %u\n", this->parent_id);
+    printf("\n");
 }

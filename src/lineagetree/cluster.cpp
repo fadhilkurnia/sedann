@@ -8,9 +8,9 @@ Cluster::Cluster(uint32_t dim, uint32_t max_vector) {
 }
 
 bool Cluster::insert_vector(float *v) {
-    printf("before insertion: %lu\n", this->vectors.size());
+    printf("cluster: before insertion: %lu\n", this->vectors.size());
     if (this->vectors.size() == this->max_vector) {
-        printf("the cluster is full\n");
+        printf("cluster: the cluster is full\n");
         return false;
     }
 
@@ -34,4 +34,4 @@ bool Cluster::insert_vector(float *v) {
 
 bool Cluster::is_almost_full() const {
     return ((float) this->vectors.size() / (float) this->max_vector) > 0.90;
-};
+}

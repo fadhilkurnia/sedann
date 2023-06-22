@@ -12,8 +12,6 @@
 class LineageTree {
 public:
     uint32_t dim;
-    uint32_t depth;
-    uint32_t num_nodes;
     Node *root;
 
     // the main constructor
@@ -24,6 +22,18 @@ public:
     // cluster-node splitting and tree balancing, especially
     // if the target cluster-node becomes full.
     bool insert_vector(float *v);
+
+    void split_node(Node *n);
+
+    uint32_t get_depth() const;
+
+    uint32_t get_num_nodes() const;
+
+    uint32_t get_num_leaf_nodes() const;
+
+    // print the tree starting from the node n, if n is null the function
+    // print from the root of this tree
+    void print(Node *n);
 
     // persist_index store the tree structure into a persistent disk
     Error *persist_index();

@@ -44,7 +44,9 @@ public:
     std::vector<float *> centroids;
     std::vector<Cluster *> clusters;
     std::vector<Node *> children;
-    Node *parent;
+
+    Node *parent;           // pointer to the parent's node
+    uint32_t parent_id;     // pointer to the id of parent centroid in parent
 
     // these variables below are populated when this node splitting
     // a full cluster into two new clusters
@@ -58,4 +60,6 @@ public:
     std::vector<Cluster *> split_cluster(Cluster *c);
 
     bool is_full() const;
+
+    void print();
 };
