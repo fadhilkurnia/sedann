@@ -1,6 +1,10 @@
 #include "lineagetree/lineagetree.h"
+#include "lineagetree/node.h"
 #include "lineagetree/utils.h"
 #include <stack>
+#include <queue>
+
+const uint32_t NODE_MAX_CENTROID = 13;
 
 LineageTree::LineageTree(uint32_t dim) {
     printf("LineageTree constructor\n");
@@ -13,26 +17,12 @@ bool LineageTree::insert_vector(float *v) {
     printf("adding a new vector %d\n", this->dim);
 
     if (this->root == nullptr) {
-        this->root = new Node(true, this->dim, 4);
+        this->root = new Node(true,
+                              this->dim,
+                              NODE_MAX_CENTROID);
     }
 
-    // TODO: search the target node using DFS
-    // TODO: alternative approach by using beam search
-    std::stack<Node *> dfs_stack;
-    dfs_stack.push(this->root);
-    Node *target_node = this->root;
-    while (!dfs_stack.empty()) {
-        Node *cur_node = dfs_stack.top();
-        target_node = cur_node;
-        dfs_stack.pop();
-
-        if (!cur_node->is_leaf) {
-            for (Node *c: cur_node->children) {
-                dfs_stack.push(c);
-            }
-        }
-    }
-
+    Node *target_node = this->find_target_insert_node(v);
     assert(target_node != nullptr && target_node->is_leaf == true);
     target_node->insert_vector(v);
     if (target_node->is_full()) {
@@ -44,11 +34,73 @@ bool LineageTree::insert_vector(float *v) {
     return true;
 }
 
+Node *LineageTree::find_target_insert_node(float *v) const {
+    Node *target_node = this->root;
+
+    // TODO: search the target node using best first search
+    // TODO: alternative approach by using beam search
+    std::stack<Node *> candidate_stack;
+    candidate_stack.push(this->root);
+
+    while (!candidate_stack.empty()) {
+        Node *cur_node = candidate_stack.top();
+        target_node = cur_node;
+        candidate_stack.pop();
+
+        if (cur_node->is_leaf) {
+            continue;
+        }
+
+        // find near centroids
+        // TODO: can we use the pre-computed distance (PCD) here?
+        typedef std::pair<float, uint32_t> dist_pair;
+        std::priority_queue<
+                dist_pair,
+                std::vector<dist_pair>,
+                std::greater<> > pq;
+        for (int i = 0; i < cur_node->centroids.size(); ++i) {
+            float tmp_dist = l2_sq_distance(this->dim,
+                                            v,
+                                            cur_node->centroids[i]);
+            pq.emplace(tmp_dist, i);
+        }
+
+        // push the closest centroid into the candidate list
+        candidate_stack.push(cur_node->children[pq.top().second]);
+        float min_dist = pq.top().first;
+        pq.pop();
+
+        // handle if the vector v has roughly equal distance to multiple
+        // centroids. For instance: c1 ----  v ---- c2; v is roughly in
+        // between c1 and c2, so we put both c1 and c2 into the candidate list.
+        // Here, we consider if the difference between v-c1 and v-c2
+        // is within 10%.
+        // TODO: candidate_stack should be a candidate heap instead (?)
+        while (!pq.empty()) {
+            if (pq.top().first <= 1.1 * min_dist) {
+                candidate_stack.push(cur_node->children[pq.top().second]);
+            } else {
+                break;
+            }
+            pq.pop();
+        }
+
+    }
+
+    return target_node;
+}
+
 void LineageTree::split_node(Node *n) {
     printf(">>> splitting node %p\n", n);
     n->print();
+
+    // note that the is_leaf in the right_node depends on whether this node n
+    // is a leaf_node or not; splitting a non-leaf node generate
+    // another non-leaf node.
     Node *parent_node = n->parent;
-    Node *right_node = new Node(true, this->dim, n->max_centroid);
+    Node *right_node = new Node(n->is_leaf,
+                                this->dim,
+                                n->max_centroid);
 
     // handle root node, that is when the parent is null
     if (parent_node == nullptr) {

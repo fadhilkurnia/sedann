@@ -2,6 +2,8 @@
 #include "lineagetree/utils.h"
 #include <cmath>
 
+const uint32_t CENTROID_MAX_VECTOR = 8;
+
 LineageClusterNode::LineageClusterNode(uint32_t dim, bool is_leaf, uint32_t pagesize) {
     printf("ClusterNode constructor\n");
 
@@ -53,17 +55,12 @@ float LineageClusterNode::get_cur_capacity() const {
 }
 
 Node::Node(bool is_leaf, uint32_t dim, uint32_t max_centroid) {
+    assert(max_centroid > 1);
+    assert(dim > 0);
+
     this->is_leaf = is_leaf;
     this->dim = dim;
     this->max_centroid = max_centroid;
-}
-
-float l2_sq_distance(uint32_t dim, float *a, float *b) {
-    float dist = 0.0;
-    for (int i = 0; i < dim; i++) {
-        dist += std::pow(a[i] - b[i], 2);
-    }
-    return dist;
 }
 
 bool Node::insert_vector(float *v) {
@@ -75,7 +72,7 @@ bool Node::insert_vector(float *v) {
         }
 
         // create a new cluster, insert vector v into it
-        auto *c = new Cluster(this->dim, 8);
+        auto *c = new Cluster(this->dim, CENTROID_MAX_VECTOR);
         c->insert_vector(v);
 
         // insert a new centroid to this node
@@ -208,7 +205,7 @@ std::vector<Cluster *> Node::split_cluster(Cluster *c) {
 
     // initializing the new clusters
     for (float *new_ctr: new_centroids) {
-        auto *tmp = new Cluster(this->dim);
+        auto *tmp = new Cluster(this->dim, CENTROID_MAX_VECTOR);
         tmp->centroid = new_ctr;
         new_clusters.push_back(tmp);
     }

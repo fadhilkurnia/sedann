@@ -3,6 +3,15 @@
 
 #include <cstdint>
 #include <vector>
+#include <cmath>
+
+static float l2_sq_distance(uint32_t dim, float *a, float *b) {
+    float dist = 0.0;
+    for (int i = 0; i < dim; i++) {
+        dist += std::pow(a[i] - b[i], 2);
+    }
+    return dist;
+}
 
 // update_centroid updates the centroid, in-place, using weighted average method
 static void update_centroid(uint32_t num_prev_vector, uint32_t dim, float *centroid, float *v) {

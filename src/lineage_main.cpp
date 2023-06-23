@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
     LineageTree t(dimension);
 
-    for (int i = 0; i < 5000; i++) {
+    for (int i = 0; i < 1000000; i++) {
         printf("== inserting vector number %d\n", i + 1);
         uint32_t offset = dimension * i;
         float *v = vectors + offset;

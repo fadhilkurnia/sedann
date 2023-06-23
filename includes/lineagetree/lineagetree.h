@@ -23,6 +23,10 @@ public:
     // if the target cluster-node becomes full.
     bool insert_vector(float *v);
 
+    // find_target_insert_node return a leaf node which contains
+    // approximately the closest centroid
+    Node *find_target_insert_node(float *v) const;
+
     void split_node(Node *n);
 
     uint32_t get_depth() const;
