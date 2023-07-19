@@ -4,14 +4,15 @@
 #include "error/error.h"
 
 // checklist:
-// [ ] handle insert new vector
+// [x] handle insert new vector
 // [ ] split cluster node into multiple cluster nodes
-// [ ] rebalancing cluster node
+// [ ] rebalance cluster node
 // [ ] buffer manager, store some data in disk and memory
 
 class LineageTree {
 public:
     uint32_t dim;
+    uint32_t next_vid;
     Node *root;
 
     // the main constructor
@@ -27,6 +28,10 @@ public:
     // approximately the closest centroid
     Node *find_target_insert_node(float *v) const;
 
+    std::vector<float*> approximate_search(uint32_t k) const;
+
+    std::vector<uint32_t> approximate_search2(uint32_t k, float *q) const;
+
     void split_node(Node *n);
 
     uint32_t get_depth() const;
@@ -35,10 +40,15 @@ public:
 
     uint32_t get_num_leaf_nodes() const;
 
+    void print_leaf_nodes() const;
+
     // print the tree starting from the node n, if n is null the function
     // print from the root of this tree
     void print(Node *n);
 
     // persist_index store the tree structure into a persistent disk
     Error *persist_index();
+
+    // assign cluster id to determine adjacent cluster
+    void assign_cluster_id();
 };

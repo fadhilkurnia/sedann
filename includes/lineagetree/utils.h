@@ -17,6 +17,12 @@ static float l2_sq_distance(uint32_t dim, float *a, float *b) {
 static void update_centroid(uint32_t num_prev_vector, uint32_t dim, float *centroid, float *v) {
     // TODO: use SIMD to speed up the calculation below
     auto n = (float) num_prev_vector;
+    if (n == 0) {
+        for (int d = 0; d < dim; d++) {
+            centroid[d] = v[d];
+        }
+        return;
+    }
     for (int d = 0; d < dim; d++) {
         centroid[d] = (centroid[d] * n + v[d]) / (n + 1);
     }

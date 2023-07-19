@@ -63,17 +63,18 @@ Node::Node(bool is_leaf, uint32_t dim, uint32_t max_centroid) {
     this->max_centroid = max_centroid;
 }
 
-bool Node::insert_vector(float *v) {
+bool Node::insert_vector(uint32_t vid, float *v) {
     // handle empty node, create a new cluster with a single vector
     if (this->centroids.empty()) {
         if (!this->is_leaf) {
-            printf("empty node, but non leaf\n");
+            // TODO: change printf with a logging library
+            printf("error: found a non-leaf empty node\n");
             return false;
         }
 
         // create a new cluster, insert vector v into it
         auto *c = new Cluster(this->dim, CENTROID_MAX_VECTOR);
-        c->insert_vector(v);
+        c->insert_vector(vid, v);
 
         // insert a new centroid to this node
         this->centroids.push_back(c->centroid);
@@ -93,18 +94,22 @@ bool Node::insert_vector(float *v) {
         }
     }
 
-    // insert vector v into a cluster whose centroid is the closest
-    printf("node: inserting a vector into cid=%d\n", cid);
+    // insert vector v into a cluster whose centroid is the closest (cid)
+    // printf("node: inserting a vector into cid=%d\n", cid);
     Cluster *c = this->clusters[cid];
-    c->insert_vector(v);
+    c->insert_vector(vid, v);
     this->centroids[cid] = c->centroid;
 
     // split the cluster if it is almost full
     if (c->is_almost_full()) {
-        printf("node: current num of vectors: %lu\n", c->vectors.size());
+        // printf("node: current num of vectors: %lu\n", c->vectors.size());
         std::vector<Cluster *> new_clusters = this->split_cluster(c);
+
         if (this->centroids.size() - 1 + new_clusters.size() <= this->max_centroid) {
-            std::vector<float *> tmp_centoids;
+            // the newly created centroids can be placed in this node since
+            // this node still have spaces
+
+            std::vector<float *> tmp_centroids;
             std::vector<Cluster *> tmp_clusters;
 
             // insert the new clusters into the list of cluster
@@ -113,22 +118,29 @@ bool Node::insert_vector(float *v) {
                 if (i == cid) {
                     for (auto &new_cluster: new_clusters) {
                         tmp_clusters.push_back(new_cluster);
-                        tmp_centoids.push_back(new_cluster->centroid);
+                        tmp_centroids.push_back(new_cluster->centroid);
                     }
                     continue;
                 }
                 tmp_clusters.push_back(this->clusters[i]);
-                tmp_centoids.push_back(this->clusters[i]->centroid);
+                tmp_centroids.push_back(this->clusters[i]->centroid);
             }
             this->clusters = tmp_clusters;
-            this->centroids = tmp_centoids;
+            this->centroids = tmp_centroids;
 
         } else {
+            // the newly created centroids can not be placed in this node since
+            // this node is already full, thus the Tree class need to split
+            // the node. Here, we set some metadata to help the Tree splitting
+            // the node.
+
             this->insert_md_old_centroid = c->centroid;
             this->insert_md_split_centroid_idx = cid;
-            // TODO: implement this, maybe in the tree?
-            printf("the node is full, need to push-up to the parent. num_centroid=%lu, target_centroid_id=%d\n",
-                   this->centroids.size(), cid);
+
+            // TODO: we should use new_clusters created from Node::split_cluster(), we already did k-means there, not using the result is wasteful! Alternatively only do k-means if we know for sure that we will still have some places
+            // TODO: implement this, maybe in the tree class?
+            // printf("the node is full, need to push-up to the parent. num_centroid=%lu, target_centroid_id=%d\n",
+            //       this->centroids.size(), cid);
         }
     }
 
@@ -138,11 +150,12 @@ bool Node::insert_vector(float *v) {
 std::vector<Cluster *> Node::split_cluster(Cluster *c) {
     std::vector<Cluster *> new_clusters;
 
-    // TODO: use k-means to split a cluster into two new clusters
+    // TODO: use efficient k-means to split a cluster into two new clusters
     uint32_t k = 2;
-    std::vector<float *> new_centroids;          // new centroids
+    std::vector<float *> new_centroids;                // new centroids
     std::vector<int> vector_cid(c->vectors.size()); // cid for each vector
 
+    // TODO: use k instead of 2
     // the default new centroids is the first and the last vector in the cluster
     float *new_c1 = (float *) malloc(this->dim * sizeof(float));
     memcpy(new_c1, c->vectors[0], this->dim);
@@ -151,6 +164,7 @@ std::vector<Cluster *> Node::split_cluster(Cluster *c) {
     memcpy(new_c2, c->vectors[c->vectors.size() - 1], this->dim);
     new_centroids.push_back(new_c2);
 
+    // TODO: assign to k clusters, instead of 2 clusters
     // initial assignment, split the vector data equally into two clusters
     for (int i = 0; i < c->vectors.size(); i++) {
         vector_cid[i] = 0;
@@ -186,19 +200,26 @@ std::vector<Cluster *> Node::split_cluster(Cluster *c) {
             }
         }
 
-        // TODO: recalculate the centroid for each new cluster
         std::vector<int> num_vec_cluster(k); // #vector in each new cluster
+        // reset the centroid in each cluster, before we recalculate it later
+        for (auto & new_centroid : new_centroids) {
+            for (int d = 0; d < this->dim; ++d) {
+                new_centroid[d] = 0.0;
+            }
+        }
+        // recalculate the new centroid for each cluster
         for (int i = 0; i < c->vectors.size(); i++) {
             update_centroid(
                     num_vec_cluster[vector_cid[i]],
                     this->dim,
                     new_centroids[vector_cid[i]],
                     c->vectors[i]);
+            num_vec_cluster[vector_cid[i]]++;
         }
 
         // stop when there is no changes
         if (!any_changes) {
-            printf("finish k-means with %d iterations.\n", num_iteration);
+            // printf("finish k-means with %d iterations.\n", num_iteration);
             break;
         }
     }
@@ -214,6 +235,7 @@ std::vector<Cluster *> Node::split_cluster(Cluster *c) {
     for (int i = 0; i < vector_cid.size(); i++) {
         auto tmp_c = new_clusters[vector_cid[i]];
         tmp_c->vectors.push_back(c->vectors[i]);
+        tmp_c->vid.push_back(c->vid[i]);
     }
 
     // throw error when a new cluster is empty

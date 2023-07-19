@@ -55,7 +55,7 @@ public:
 
     explicit Node(bool is_leaf = true, uint32_t dim = 128, uint32_t max_centroid = 4);
 
-    bool insert_vector(float *v);
+    bool insert_vector(uint32_t vid, float *v);
 
     std::vector<Cluster *> split_cluster(Cluster *c);
 

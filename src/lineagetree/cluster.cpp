@@ -7,14 +7,15 @@ Cluster::Cluster(uint32_t dim, uint32_t max_vector) {
     this->centroid = nullptr;
 }
 
-bool Cluster::insert_vector(float *v) {
-    printf("cluster: before insertion: %lu\n", this->vectors.size());
+bool Cluster::insert_vector(uint32_t vid, float *v) {
+//    printf("cluster: before insertion: %lu\n", this->vectors.size());
     if (this->vectors.size() == this->max_vector) {
-        printf("cluster: the cluster is full\n");
+//        printf("cluster: the cluster is full\n");
         return false;
     }
 
     this->vectors.push_back(v);
+    this->vid.push_back(vid);
 
     if (this->vectors.size() == 1) {
         // update the centroid, since there is only one vector v so
