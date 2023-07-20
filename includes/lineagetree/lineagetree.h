@@ -4,10 +4,13 @@
 #include "error/error.h"
 
 // checklist:
-// [x] handle insert new vector
-// [ ] split cluster node into multiple cluster nodes
-// [ ] rebalance cluster node
+// [v] handle insert new vector
+// [v] split cluster node into multiple cluster nodes
+// [ ] balance cluster node
 // [ ] buffer manager, store some data in disk and memory
+
+typedef std::pair<double, float *> dist_vector_pair;  // distance & vector pair
+typedef std::pair<uint32_t, float *> vid_vector_pair; // vid & vector pair
 
 class LineageTree {
 public:
@@ -28,7 +31,7 @@ public:
     // approximately the closest centroid
     Node *find_target_insert_node(float *v) const;
 
-    std::vector<float*> approximate_search(uint32_t k) const;
+    std::vector<vid_vector_pair> approximate_search(uint32_t k, float *q) const;
 
     std::vector<uint32_t> approximate_search2(uint32_t k, float *q) const;
 

@@ -41,9 +41,9 @@ public:
     bool is_leaf;
     uint32_t dim;
     uint32_t max_centroid;
-    std::vector<float *> centroids;
-    std::vector<Cluster *> clusters;
-    std::vector<Node *> children;
+    std::vector<float *> centroids;     // TODO: for both leaf and non-leaf node
+    std::vector<Node *> children;       // only for a non-leaf node
+    std::vector<Cluster *> clusters;    // only for a leaf node
 
     Node *parent;           // pointer to the parent's node
     uint32_t parent_id;     // pointer to the id of parent centroid in parent

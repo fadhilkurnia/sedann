@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     float *vectors = read_fvecs(data_filename, &dimension, &num_vectors);
     LineageTree t(dimension);
 
-    // num_vectors = 52;
+    num_vectors = 100000;
     printf("== indexing %u vectors ...\n", num_vectors);
     auto begin_time = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < num_vectors; i++) {
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     printf("tree depth: %d\n", t.get_depth());
     printf("tree #node: %d\n", t.get_num_nodes());
     printf("tree #leaf: %d\n", t.get_num_leaf_nodes());
-    printf("leafs: "); t.print_leaf_nodes(); printf("\n");
+    // printf("leafs: "); t.print_leaf_nodes(); printf("\n");
 
     printf("=======================\n");
 
@@ -68,13 +68,17 @@ int main(int argc, char **argv) {
 //    }
 
     // test by searching the first five vectors in the dataset
-    for (int i = 0; i < 5; ++i) {
-        auto result = t.approximate_search2(10, vectors + i * dimension);
+    for (int i = 0; i < 100; ++i) {
+        begin_time = std::chrono::high_resolution_clock::now();
+        auto result = t.approximate_search(10, vectors + i * dimension);
+        end_time = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast
+                <std::chrono::nanoseconds>(end_time - begin_time);
         printf("vector-trivial-%d: ", i);
         for (int j = 0; j < result.size(); ++j) {
-            printf("%d ", result[j]);
+            printf("%d ", result[j].first);
         }
-        printf("\n");
+        printf("| latency: %.2f ms\n", duration.count() / (double) 1000000.0);
     }
 
     // cleanup

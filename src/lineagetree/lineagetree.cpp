@@ -3,8 +3,9 @@
 #include "lineagetree/utils.h"
 #include <stack>
 #include <queue>
+#include <set>
 
-const uint32_t NODE_MAX_CENTROID = 13;
+const uint32_t NODE_MAX_CENTROID = 128;
 
 LineageTree::LineageTree(uint32_t dim) {
     this->dim = dim;
@@ -37,68 +38,210 @@ bool LineageTree::insert_vector(float *v) {
 }
 
 Node *LineageTree::find_target_insert_node(float *v) const {
-    Node *target_node = this->root;
+    if (this->root->children.empty()) {
+        return this->root;
+    }
 
-    // TODO: search the target node using best first search
-    // TODO: alternative approach by using beam search
-    std::stack<Node *> candidate_stack;
-    candidate_stack.push(this->root);
+    // attempt-1: using exhaustive search with bfs
+//    Node *target_node = nullptr;
+//    double min_dist;
+//    std::queue<Node *> bfs_queue;
+//    bfs_queue.push(this->root);
+//
+//    while (!bfs_queue.empty()) {
+//        Node *cur_node = bfs_queue.front();
+//        bfs_queue.pop();
+//
+//        if (cur_node->is_leaf) {
+//            for (auto c: cur_node->clusters) {
+//                double cur_dist = l2_sq_distance(this->dim, c->centroid, v);
+//                if (target_node == nullptr || min_dist > cur_dist) {
+//                    min_dist = cur_dist;
+//                    target_node = cur_node;
+//                }
+//            }
+//            continue;
+//        }
+//
+//        for (auto n: cur_node->children) {
+//            bfs_queue.push(n);
+//        }
+//    }
+//
+//    return target_node;
 
-    // candidate_node;
+    // using beam-search, note that std::set is ordered in ascending order
+    typedef std::pair<double, Node *> dist_pair; // distance & node pair
+    std::set<dist_pair> pq;                      // priority queue of the pair
+    uint32_t pq_cap = 400;                       // beam-width, capacity of pq
 
-    // Lineage Tree -> Node -> Cluster
-    //                      -> Node
+    // add the children of the root into the working set (priority queue)
+    // start for the first child.
+    Node *target_node = nullptr;
+    double min_dist;
+    for (int i = 0; i < this->root->children.size(); ++i) {
+        pq.emplace(l2_sq_distance(this->dim, this->root->centroids[i], v),
+                   this->root->children[i]);
+    }
 
-    while (!candidate_stack.empty()) {
-        Node *cur_node = candidate_stack.top();
-        target_node = cur_node;
-        candidate_stack.pop();
+    while (!pq.empty()) {
+        double cur_node_dist = pq.begin()->first;
+        Node *cur_node = pq.begin()->second;
+        pq.erase(pq.begin());
 
         if (cur_node->is_leaf) {
+            // found the first leaf node (target_node == nullptr), or
+            // found a closer node than the previous one (get new min_dist)
+            if (target_node == nullptr || cur_node_dist < min_dist) {
+                min_dist = cur_node_dist;
+                target_node = cur_node;
+            }
             continue;
         }
 
-        // find near centroids
-        // TODO: can we use the pre-computed distance (PCD) here?
-        typedef std::pair<float, uint32_t> dist_pair;
-        std::priority_queue<
-                dist_pair,
-                std::vector<dist_pair>,
-                std::greater<> > pq;
-        for (int i = 0; i < cur_node->centroids.size(); ++i) {
-            float tmp_dist = l2_sq_distance(this->dim,
-                                            v,
-                                            cur_node->centroids[i]);
-            pq.emplace(tmp_dist, i);
-        }
-
-        // push the closest centroid into the candidate list
-        candidate_stack.push(cur_node->children[pq.top().second]);
-        float min_dist = pq.top().first;
-        pq.pop();
-
-        // handle if the vector v has roughly equal distance to multiple
-        // centroids. For instance: c1 ----  v ---- c2; v is roughly in
-        // between c1 and c2, so we put both c1 and c2 into the candidate list.
-        // Here, we consider if the difference between v-c1 and v-c2
-        // is within 10%.
-        // TODO: candidate_stack should be a candidate heap instead (?)
-        while (!pq.empty()) {
-            if (pq.top().first <= 1.1 * min_dist) {
-                candidate_stack.push(cur_node->children[pq.top().second]);
+        for (int i = 0; i < cur_node->children.size(); ++i) {
+            double tmp_dist = l2_sq_distance(this->dim,
+                                             cur_node->centroids[i],
+                                             v);
+            // if the priority queue is full, we add the next node only if
+            // its distance is closer than the furthest candidate in pq.
+            if (pq.size() == pq_cap) {
+                if (pq.rbegin()->first > tmp_dist) {
+                    pq.erase(std::prev(pq.end()));
+                    pq.emplace(tmp_dist, cur_node->children[i]);
+                }
             } else {
-                break;
+                pq.emplace(tmp_dist, cur_node->children[i]);
             }
-            pq.pop();
         }
-
     }
 
     return target_node;
 }
 
-std::vector<float *> LineageTree::approximate_search(uint32_t k) const {
-    return std::vector<float *>();
+std::vector<vid_vector_pair> LineageTree::approximate_search(uint32_t k, float *q) const {
+    std::vector<vid_vector_pair> result;
+
+    if (this->root->centroids.empty()) {
+        return result;
+    }
+
+    // attempt-1: using exhaustive search with bfs
+    std::set<dist_vector_pair> result_bounded_set;
+    std::set<std::pair<double, uint32_t>> vid_bounded_set;
+//    std::queue<Node *> bfs_queue;
+//    bfs_queue.push(this->root);
+//    uint32_t num_vectors = 0;
+//    while (!bfs_queue.empty()) {
+//        Node *cur_node = bfs_queue.front();
+//        bfs_queue.pop();
+//
+//        if (cur_node->is_leaf) {
+//            for (auto cur_cluster: cur_node->clusters) {
+//                for (int i = 0; i < cur_cluster->vectors.size(); ++i) {
+//                    float *v = cur_cluster->vectors[i];
+//                    uint32_t vid = cur_cluster->vid[i];
+//                    double cur_distance = l2_sq_distance(this->dim, v, q);
+//                    num_vectors++;
+//
+//                    // we add this vector into the result under two condition:
+//                    // 1. the vector results is still less than k
+//                    // 2. we already have k results, but we get a closer vector
+//                    if (result_bounded_set.size() < k) {
+//                        result_bounded_set.emplace(cur_distance, v);
+//                        vid_bounded_set.emplace(cur_distance, vid);
+//                    }
+//                    if (result_bounded_set.size() == k &&
+//                        result_bounded_set.rbegin()->first > cur_distance) {
+//                        result_bounded_set.erase(std::prev(result_bounded_set.end()));
+//                        vid_bounded_set.erase(std::prev(vid_bounded_set.end()));
+//                        result_bounded_set.emplace(cur_distance, v);
+//                        vid_bounded_set.emplace(cur_distance, vid);
+//                    }
+//                }
+//            }
+//        }
+//
+//        for (auto i: cur_node->children) {
+//            bfs_queue.push(i);
+//        }
+//    }
+
+    // attempt-2: using beam-search
+    typedef std::pair<double, Node *> dist_pair; // distance & node pair
+    std::set<dist_pair> pq;                      // priority queue of the pair
+    uint32_t pq_cap = 128;                       // beam-width, capacity of pq
+
+    // add the children of the root into the working set (priority queue)
+    // start for the first child.
+    for (int i = 0; i < this->root->children.size(); ++i) {
+        pq.emplace(l2_sq_distance(this->dim, this->root->centroids[i], q),
+                   this->root->children[i]);
+    }
+
+    while (!pq.empty()) {
+        double cur_node_dist = pq.begin()->first;
+        Node *cur_node = pq.begin()->second;
+        pq.erase(pq.begin());
+
+        if (cur_node->is_leaf) {
+            for (auto cur_cluster: cur_node->clusters) {
+                for (int i = 0; i < cur_cluster->vectors.size(); ++i) {
+                    float *v = cur_cluster->vectors[i];
+                    uint32_t vid = cur_cluster->vid[i];
+                    double cur_distance = l2_sq_distance(this->dim, v, q);
+
+                    // we add this vector into the result under two condition:
+                    // 1. the vector results is still less than k
+                    // 2. we already have k results, but we get a closer vector
+                    if (result_bounded_set.size() < k) {
+                        result_bounded_set.emplace(cur_distance, v);
+                        vid_bounded_set.emplace(cur_distance, vid);
+                    }
+                    if (result_bounded_set.size() == k &&
+                        result_bounded_set.rbegin()->first > cur_distance) {
+                        result_bounded_set.erase(std::prev(result_bounded_set.end()));
+                        vid_bounded_set.erase(std::prev(vid_bounded_set.end()));
+                        result_bounded_set.emplace(cur_distance, v);
+                        vid_bounded_set.emplace(cur_distance, vid);
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < cur_node->children.size(); ++i) {
+            double tmp_dist = l2_sq_distance(this->dim,
+                                             cur_node->centroids[i],
+                                             q);
+            // if the priority queue is full, we add the next node only if
+            // its distance is closer than the furthest candidate in pq.
+            if (pq.size() == pq_cap) {
+                if (pq.rbegin()->first > tmp_dist) {
+                    pq.erase(std::prev(pq.end()));
+                    pq.emplace(tmp_dist, cur_node->children[i]);
+                }
+            } else {
+                pq.emplace(tmp_dist, cur_node->children[i]);
+            }
+        }
+    }
+
+    // printf(">>>> (%d): ", num_vectors);
+    for (int i = 0; i < k; ++i) {
+        uint32_t vid = vid_bounded_set.begin()->second;
+        double dist = vid_bounded_set.begin()->first;
+        float *v = result_bounded_set.begin()->second;
+
+        // printf("%.2f ", dist);
+
+        result.emplace_back(vid, v);
+
+        vid_bounded_set.erase(vid_bounded_set.begin());
+        result_bounded_set.erase(result_bounded_set.begin());
+    }
+    // printf("\n");
+
+    return result;
 }
 
 std::vector<uint32_t> LineageTree::approximate_search2(uint32_t k, float *q) const {
